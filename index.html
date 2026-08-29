@@ -1,1 +1,397 @@
-const API = "https://vdib.oldwatcher300.workers.dev";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DISCORD | Central Command</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --orange: #ff8c00; --orange-glow: rgba(255, 140, 0, 0.4);
+            --bg: #09090b; --card: rgba(18, 18, 20, 0.6);
+            --text-main: #f4f4f5; --text-muted: #a1a1aa;
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ef4444; --danger-glow: rgba(239, 68, 68, 0.4);
+            --success: #10b981;
+            --spring: cubic-bezier(0.175, 0.885, 0.32, 1.05);
+            --smooth: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        @keyframes panGrid { 0% { background-position: 0 0; } 100% { background-position: 40px 40px; } }
+
+        body {
+            background-color: var(--bg);
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; animation: panGrid 15s linear infinite;
+            color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden;
+        }
+
+        h1, h2, h3 { color: var(--text-main); margin-top: 0; font-weight: 800; letter-spacing: -0.5px; }
+        h1 { color: var(--orange); font-size: 1.5rem; text-transform: uppercase; text-shadow: 0 0 20px var(--orange-glow); display: flex; align-items: center; gap: 10px; margin-bottom: 25px;}
+        h1::before { content: '>'; color: var(--text-muted); text-shadow: none; }
+        h3 { font-size: 1.1rem; margin-bottom: 10px; color: #fff; }
+        p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: rgba(20, 20, 25, 0.95); border-left: 4px solid var(--orange); padding: 15px 20px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); animation: slideInRight 0.5s var(--spring) forwards; }
+        @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; padding: 20px; transition: opacity 0.5s var(--smooth), visibility 0.5s var(--smooth);
+        }
+        .login-box {
+            text-align: center; width: 100%; max-width: 400px; padding: 45px 35px; background: rgba(20, 20, 25, 0.8); border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); animation: popIn 0.8s var(--spring);
+        }
+        @keyframes popIn { 0% { transform: scale(0.85) translateY(30px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+        .sidebar {
+            width: 280px; background: rgba(12, 12, 14, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; flex-shrink: 0; z-index: 10; box-shadow: 10px 0 30px rgba(0,0,0,0.3); overflow-y: auto;
+        }
+        .sidebar h2 { font-size: 1.1rem; margin-bottom: 30px; letter-spacing: 3px; text-align: center; padding-bottom: 20px; color: var(--orange); border-bottom: 1px solid var(--border); text-shadow: 0 0 15px var(--orange-glow); }
+        .nav-container { display: flex; flex-direction: column; gap: 8px; }
+        .nav-btn { background: transparent; color: var(--text-muted); border: 1px solid transparent; padding: 14px 18px; cursor: pointer; text-align: left; transition: all 0.4s var(--spring); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; border-radius: 12px; position: relative; overflow: hidden; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-main); transform: translateX(5px); }
+        .nav-btn.active { background: rgba(255, 140, 0, 0.15); color: var(--orange); border-color: rgba(255,140,0,0.3); transform: scale(1.02); }
+
+        .main { flex: 1; padding: 40px; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        .tab-content { display: none; max-width: 1100px; margin: 0 auto; padding-bottom: 40px;}
+        .tab-content.active { display: block; animation: slideUpScale 0.6s var(--spring) forwards; }
+        @keyframes slideUpScale { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 25px 30px; margin-bottom: 25px; position: relative; overflow: hidden; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform 0.4s var(--spring), box-shadow 0.4s var(--smooth), border-color 0.4s var(--smooth); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .card:hover { transform: translateY(-4px) scale(1.01); border-color: rgba(255,255,255,0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+        input[type="text"], input[type="password"], textarea, select { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; font-family: 'JetBrains Mono', monospace; font-size: 14px; border-radius: 12px; outline: none; margin-bottom: 15px; transition: all 0.3s var(--smooth); }
+        input:focus, textarea:focus, select:focus { border-color: var(--orange); background: rgba(0,0,0,0.8); box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.15); }
+        textarea { resize: vertical; min-height: 120px; }
+
+        .action-btn { background: var(--orange); color: #000; border: none; padding: 15px 25px; cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; width: 100%; font-size: 13px; border-radius: 12px; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s var(--smooth), filter 0.3s; }
+        .action-btn:hover { box-shadow: 0 8px 25px var(--orange-glow); filter: brightness(1.1); transform: translateY(-2px); }
+        .action-btn:active { transform: scale(0.96) translateY(2px); box-shadow: 0 4px 10px var(--orange-glow); }
+        .danger-btn { background: var(--danger); color: #fff; }
+        .danger-btn:hover { box-shadow: 0 8px 25px var(--danger-glow); }
+        .restart-btn { background: #3f3f46; color: #fff; }
+        .restart-btn:hover { background: #52525b; box-shadow: 0 8px 25px rgba(255,255,255,0.1); }
+        .small-btn { padding: 8px 16px; font-size: 11px; width: auto; margin: 0; border-radius: 8px; }
+
+        .row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .row > * { flex: 1; min-width: 200px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+
+        .switch { position: relative; display: inline-block; width: 56px; height: 32px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: rgba(255,255,255,0.1); border-radius: 32px; transition: 0.4s var(--spring); border: 1px solid var(--border); }
+        .slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 3px; bottom: 3px; background-color: #fff; border-radius: 50%; transition: 0.4s var(--spring); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        input:checked + .slider { background-color: var(--orange); border-color: var(--orange); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .log-entry, .ban-entry, .changelog-entry { background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; transition: all 0.3s var(--smooth); }
+        .log-entry { padding: 12px 18px; font-family: 'JetBrains Mono', monospace; font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .ban-entry { padding: 14px 18px; font-family: 'Inter', sans-serif; display: flex; gap: 12px; align-items: baseline; }
+        .changelog-entry { padding: 20px; }
+        .log-entry:hover, .ban-entry:hover, .changelog-entry:hover { background: rgba(0,0,0,0.8); transform: translateY(-2px) scale(1.005); border-color: var(--orange); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+
+        .log-time { color: var(--text-muted); font-size: 12px; }
+        .log-user { color: var(--orange); font-weight: bold; background: rgba(255, 140, 0, 0.1); padding: 3px 8px; border-radius: 6px; }
+        .log-cmd { color: #4ade80; flex: 1; word-break: break-all; }
+        .ban-user { color: var(--danger); font-weight: 800; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+
+        .cl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .cl-ver { color: var(--orange); font-weight: 800; font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+        .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid transparent; padding: 6px 12px; cursor: pointer; font-size: 11px; font-weight: 800; border-radius: 8px; transition: all 0.3s var(--smooth); }
+        .btn-delete:hover { background: var(--danger); color: #fff; transform: scale(1.05); box-shadow: 0 5px 15px var(--danger-glow); }
+
+        @media (max-width: 850px) {
+            body { flex-direction: column; overflow: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 20px; position: sticky; top: 0; z-index: 100; flex-shrink: 0; }
+            .nav-container { flex-direction: row; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
+            .nav-btn { flex: 1; white-space: nowrap; padding: 12px 15px; font-size: 12px; text-align: center; }
+            .main { padding: 20px; overflow-x: hidden; }
+            .flex-between { flex-direction: column; align-items: flex-start; }
+            .switch { align-self: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h1 style="justify-content: center; margin-bottom: 30px; font-size: 1.6rem;">SYSTEM ACCESS</h1>
+            <input type="password" id="pass-input" placeholder="ENTER ACCESS KEY..." style="text-align: center; letter-spacing: 3px; font-size: 16px;">
+            <button class="action-btn" onclick="attemptLogin()">AUTHORIZE SESSION</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <h2>DISCORD COMMAND</h2>
+        <div class="nav-container">
+            <button class="nav-btn active" onclick="openTab(event, 'dashboard')">DASHBOARD</button>
+            <button class="nav-btn" onclick="openTab(event, 'mod')">MODERATION</button>
+            <button class="nav-btn" onclick="openTab(event, 'logs')">AUDIT LOGS</button>
+            <button class="nav-btn" onclick="openTab(event, 'editor')">CHANGELOG</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard" class="tab-content active">
+            <h1>SERVER CONTROLS</h1>
+
+            <div class="card">
+                <h3>Global Broadcast</h3>
+                <div class="row" style="margin-bottom: 10px;">
+                    <select id="broadcast-channel" style="max-width: 200px; margin-bottom:0;">
+                        <option value="general">#general</option>
+                        <option value="announcements">#announcements</option>
+                        <option value="mod-log">#mod-log</option>
+                    </select>
+                    <input type="text" id="broadcast-msg" placeholder="Enter broadcast text..." style="margin-bottom:0;">
+                </div>
+                <button class="action-btn" onclick="sendBroadcast()">Send Broadcast</button>
+            </div>
+
+            <div class="card flex-between">
+                <div>
+                    <h3>Maintenance Mode</h3>
+                    <p>Temporarily disable AutoMod and most commands.</p>
+                </div>
+                <label class="switch"><input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenance()"><span class="slider"></span></label>
+            </div>
+
+            <div class="card">
+                <h3>Power Controls</h3>
+                <p style="margin-bottom: 20px;">Trigger bot‑wide actions. Proceed with caution.</p>
+                <div class="row">
+                    <button class="action-btn danger-btn" onclick="sendAction('shutdown')">Emergency Shutdown</button>
+                    <button class="action-btn restart-btn" onclick="sendAction('restart')">Global Restart</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODERATION TAB -->
+        <div id="mod" class="tab-content">
+            <h1>MODERATION HUB</h1>
+
+            <div class="card">
+                <h3>Target Player Action</h3>
+                <div class="row">
+                    <input type="text" id="target-user" placeholder="Target Username">
+                    <select id="target-action">
+                        <option value="warn">Warn User</option>
+                        <option value="kick">Kick User</option>
+                        <option value="mute">Mute User</option>
+                        <option value="unmute">Unmute User</option>
+                        <option value="ban" style="color: #ef4444; font-weight: bold;">Ban User</option>
+                        <option value="unban">Revoke Ban</option>
+                    </select>
+                </div>
+                <input type="text" id="target-reason" placeholder="Enter reason / warning message...">
+                <button class="action-btn" onclick="executeModAction()">Execute Action</button>
+            </div>
+
+            <div class="card">
+                <h3>Active Bans</h3>
+                <div id="ban-list">Loading bans...</div>
+            </div>
+        </div>
+
+        <!-- AUDIT LOGS TAB -->
+        <div id="logs" class="tab-content">
+            <h1>AUDIT LOGS</h1>
+            <input type="text" id="search-log" placeholder="Filter logs by keyword or user..." onkeyup="filterLogs()">
+            <div class="card" id="log-list" style="padding: 20px; max-height: 600px; overflow-y: auto;">Loading...</div>
+        </div>
+
+        <!-- CHANGELOG TAB -->
+        <div id="editor" class="tab-content">
+            <h1>VERSION DEPLOYMENT</h1>
+
+            <div class="card">
+                <h3>Publish New Update</h3>
+                <input type="text" id="cl-version" placeholder="Version Number (e.g. v1.2.0)">
+                <textarea id="cl-msg" placeholder="Detailed update notes..."></textarea>
+                <button class="action-btn" onclick="postChangelog()">Deploy Update</button>
+            </div>
+
+            <div class="card">
+                <div class="flex-between" style="margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Deployment History</h3>
+                    <button class="action-btn danger-btn small-btn" onclick="clearAllChangelogs()">PURGE HISTORY</button>
+                </div>
+                <div id="cl-history" style="max-height: 450px; overflow-y: auto; padding-right: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "https://vdb.oldwatcher300.workers.dev";
+        let PASS = "";
+        let sysData = { bans: {}, settings: {} };
+
+        function showToast(msg, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = isError ? 'var(--danger)' : 'var(--success)';
+            toast.innerHTML = `<b style="color: ${isError ? 'var(--danger)' : 'var(--success)'};">${isError ? 'ERROR' : 'SUCCESS'}</b><br><span style="font-size: 13px;">${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        async function attemptLogin() {
+            PASS = document.getElementById('pass-input').value;
+            if (await refreshData()) {
+                document.getElementById('login-overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('login-overlay').style.visibility = 'hidden', 500);
+                showToast("Authentication Successful");
+            } else {
+                showToast("ACCESS DENIED: INVALID KEY", true);
+                document.getElementById('pass-input').value = "";
+            }
+        }
+
+        async function refreshData() {
+            try {
+                const res = await fetch(`${API}/admin-data`, { headers: { "Authorization": PASS } });
+                if (res.status === 403) return false;
+                const data = await res.json();
+                sysData = data;
+
+                document.getElementById('log-list').innerHTML = data.logs.map(log => `
+                    <div class="log-entry">
+                        <span class="log-time">[${new Date(log.time).toLocaleTimeString()}]</span>
+                        <span class="log-user">${log.user}</span>
+                        <span class="log-cmd">> ${log.cmd}</span>
+                    </div>
+                `).join('') || "<p style='color: #888; text-align: center; padding: 20px 0;'>No logs available.</p>";
+
+                let banHtml = "";
+                for(let user in data.bans) {
+                    banHtml += `<div class="ban-entry"><span class="ban-user">${user}</span> <span style="color: #666;">&mdash;</span> <span style="color: #d4d4d8;">${data.bans[user]}</span></div>`;
+                }
+                document.getElementById('ban-list').innerHTML = banHtml || "<p style='color: #888; text-align: center; padding: 10px 0;'>No active bans.</p>";
+
+                document.getElementById('maintenance-toggle').checked = data.settings.maintenance || false;
+
+                document.getElementById('cl-history').innerHTML = data.changelogs.map((cl, index) => `
+                    <div class="changelog-entry">
+                        <div class="cl-header">
+                            <div><span class="cl-ver">${cl.version}</span><span class="cl-date" style="color: #888; font-size: 12px; margin-left: 8px;">(${new Date(cl.time).toLocaleDateString()})</span></div>
+                            <button onclick="deleteChangelog(${index})" class="btn-delete">DELETE</button>
+                        </div>
+                        <p style="margin: 0; font-size: 14px; white-space: pre-wrap; color: #e4e4e7; line-height: 1.6;">${cl.message}</p>
+                    </div>
+                `).join('') || "<p style='color: #888; text-align: center; padding: 20px 0;'>No updates published yet.</p>";
+
+                return true;
+            } catch (err) { return false; }
+        }
+
+        async function saveData(type, value) {
+            const res = await fetch(`${API}/admin-action`, {
+                method: "POST", headers: { "Authorization": PASS, "Content-Type": "application/json" },
+                body: JSON.stringify({ type, value })
+            });
+            if (res.ok) refreshData();
+        }
+
+        async function sendAction(act, extra = {}) {
+            await saveData("trigger", { type: act, ...extra });
+            showToast(`Command [${act.toUpperCase()}] dispatched.`);
+        }
+
+        function sendBroadcast() {
+            const channel = document.getElementById('broadcast-channel').value;
+            const msg = document.getElementById('broadcast-msg').value;
+            if(!msg) return showToast("Message cannot be empty", true);
+            sendAction('broadcast', { channel, reason: msg });
+            document.getElementById('broadcast-msg').value = "";
+        }
+
+        async function executeModAction() {
+            let user = document.getElementById('target-user').value.trim();
+            let action = document.getElementById('target-action').value;
+            let reason = document.getElementById('target-reason').value || "No reason provided.";
+            if(!user) return showToast("Target username required.", true);
+
+            if(action === "ban") {
+                sysData.bans[user] = reason;
+                await saveData("bans", sysData.bans);
+                await saveData("trigger", { type: "kick", target: user, reason: "Banned: " + reason });
+                showToast(`User ${user} BANNED.`);
+            } else if(action === "unban") {
+                delete sysData.bans[user];
+                await saveData("bans", sysData.bans);
+                showToast(`User ${user} UNBANNED.`);
+            } else {
+                await saveData("trigger", { type: action, target: user, reason: reason });
+                showToast(`Action [${action.toUpperCase()}] executed on ${user}.`);
+            }
+            document.getElementById('target-user').value = "";
+            document.getElementById('target-reason').value = "";
+        }
+
+        function toggleMaintenance() {
+            sysData.settings.maintenance = document.getElementById('maintenance-toggle').checked;
+            saveData("settings", sysData.settings);
+            showToast("Maintenance setting updated.");
+        }
+
+        async function postChangelog() {
+            const ver = document.getElementById('cl-version').value.trim();
+            const msg = document.getElementById('cl-msg').value.trim();
+            if(!ver || !msg) return showToast("Enter version and message.", true);
+            await saveData("add_changelog", { version: ver, message: msg });
+            document.getElementById('cl-version').value = "";
+            document.getElementById('cl-msg').value = "";
+            showToast("Update deployed successfully.");
+        }
+
+        async function deleteChangelog(index) {
+            if(confirm("Delete this version?")) {
+                await saveData("delete_changelog", index);
+                showToast("Version deleted.");
+            }
+        }
+
+        async function clearAllChangelogs() {
+            if(confirm("Permanently delete ALL history?")) {
+                await saveData("clear_changelogs", true);
+                showToast("History cleared.");
+            }
+        }
+
+        function filterLogs() {
+            let filter = document.getElementById('search-log').value.toUpperCase();
+            let entries = document.getElementsByClassName('log-entry');
+            for (let i = 0; i < entries.length; i++) {
+                entries[i].style.display = entries[i].innerText.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove("active"));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove("active"));
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+            refreshData();
+        }
+
+        setInterval(() => { if (PASS !== "") refreshData(); }, 15000);
+        document.getElementById("pass-input").addEventListener("keypress", e => { if (e.key === "Enter") attemptLogin(); });
+    </script>
+</body>
+</html>
